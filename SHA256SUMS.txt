@@ -1,2 +1,0 @@
-24695927e3078f59acd34f9c184b0398a214dbbd708660c8c2b68a4b79e56aa6  dist-final/dendritron_starter_kit-0.1.0-py3-none-any.whl
-2b736fd419f6f9a8e592005a539b3d12aae8bb9de4c60667e1bc99af04212cdd  dist-final/dendritron_starter_kit-0.1.0.tar.gz
