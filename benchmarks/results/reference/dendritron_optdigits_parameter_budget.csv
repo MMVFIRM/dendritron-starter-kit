@@ -1,0 +1,6 @@
+Model,Learned_scalar_parameters
+Backprop MLP,10210
+Backprop MLP + replay,10210
+Dendritron,10240
+Fixed branches,10240
+Linear softmax,650

@@ -1,0 +1,14 @@
+seed: 42
+charts:
+  - name: flat
+    geometry: euclidean
+    curvature: 1.0
+    tangent_scale: 1.0
+  - name: hierarchy
+    geometry: hyperbolic
+    curvature: 1.0
+    tangent_scale: 0.18
+chart_temperature: 0.35
+admission:
+  quarantine_margin: 0.02
+

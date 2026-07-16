@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use the Dendritron architecture or this starter kit, please cite this repository and the accompanying paper."
+title: "Dendritron Complete Starter Kit"
+type: software
+authors:
+  - family-names: Aragon
+    given-names: Richard A.
+version: 0.1.0
+date-released: 2026-07-16
+license: Apache-2.0
+keywords:
+  - Dendritron
+  - multicompartment architecture
+  - continual learning
+  - hyperbolic geometry
+  - functional memory
+

@@ -1,0 +1,22 @@
+name: Experiment proposal
+description: Propose a falsifiable Dendritron experiment.
+title: "[Experiment]: "
+labels: [experiment]
+body:
+  - type: textarea
+    attributes:
+      label: Hypothesis
+      description: State a falsifiable hypothesis and the architectural mechanism it tests.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Baselines and ablations
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Certificates and pass/fail gates
+    validations:
+      required: true
+

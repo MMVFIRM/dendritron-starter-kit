@@ -1,0 +1,6 @@
+Model,Final_accuracy,Final_accuracy_std,Mean_forgetting,Forgetting_std,Epochs_to_90,Early_AUC
+Backprop MLP,0.1923,0.0045,0.9924,0.0039,19.7,0.5981
+Backprop MLP + replay,0.909,0.0126,0.0847,0.011,4.56,0.8621
+Dendritron,0.9811,0.0039,0.0065,0.004,1.0,0.9938
+Fixed branches,0.9431,0.0097,0.0214,0.009,1.0,0.9791
+Linear softmax,0.1923,0.0047,0.9928,0.0041,16.2,0.5898

@@ -1,0 +1,13 @@
+Model,Stage,Mean_accuracy,Std_accuracy
+Backprop MLP,After 25% damage,0.1837,0.0065
+Backprop MLP,After constrained repair,0.87,0.0174
+Backprop MLP,Before damage,0.1887,0.0044
+Backprop MLP + replay,After 25% damage,0.8459,0.0348
+Backprop MLP + replay,After constrained repair,0.9237,0.0088
+Backprop MLP + replay,Before damage,0.9089,0.0125
+Dendritron,After 25% damage,0.9398,0.016
+Dendritron,After constrained repair,0.9761,0.0063
+Dendritron,Before damage,0.9813,0.0038
+Fixed branches,After 25% damage,0.8944,0.0215
+Fixed branches,After constrained repair,0.938,0.0128
+Fixed branches,Before damage,0.9435,0.0096

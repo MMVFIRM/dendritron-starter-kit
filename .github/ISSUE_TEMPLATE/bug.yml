@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible defect in the package or benchmark scaffold.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: Include the smallest code sample, command, seed, and full traceback.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Environment
+      description: Python, OS, package versions, hardware, and accelerator.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Ownership or certificate impact
+      description: State whether registration, retention, geometry, damage, repair, or integrity behavior changed.
+

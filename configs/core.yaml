@@ -1,0 +1,9 @@
+seed: 42
+registration_threshold: 0.80
+integration: noisy_or
+certificate_size: 64
+plasticity:
+  sigma: 1.0
+  novelty_threshold: 2.25
+  quarantine_margin: 0.02
+

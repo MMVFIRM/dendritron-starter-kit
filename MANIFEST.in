@@ -1,0 +1,10 @@
+include LICENSE NOTICE README.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md CITATION.cff
+graft docs
+graft examples
+graft tests
+graft configs
+graft notebooks
+graft benchmarks
+graft .github
+global-exclude __pycache__ *.py[cod] .DS_Store
+

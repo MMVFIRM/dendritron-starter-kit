@@ -1,0 +1,5 @@
+mode,accuracy,oracle_accuracy,oracle_retention,memory_selection_accuracy,candidate_coverage,average_candidates
+fast,0.97,0.97,1.0,1.0,1.0,1.0
+efficient,0.97,0.97,1.0,1.0,1.0,1.0016666666666667
+reliable,0.97,0.97,1.0,1.0,1.0,1.0
+critical,0.97,0.97,1.0,0.9983333333333333,1.0,1.995
