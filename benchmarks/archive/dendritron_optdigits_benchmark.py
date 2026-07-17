@@ -1,3 +1,4 @@
+import os
 import time
 from pathlib import Path
 
@@ -18,7 +19,9 @@ except ImportError:
 # Configuration
 # ============================================================
 
-OUT = Path("/mnt/data")
+_HERE = Path(__file__).resolve().parent
+OUT = Path(os.environ.get("DENDRITRON_OUTPUT_DIR") or _HERE.parent / "results" / "local")
+OUT.mkdir(parents=True, exist_ok=True)
 
 N_SEEDS = 10
 TEST_SIZE = 0.30

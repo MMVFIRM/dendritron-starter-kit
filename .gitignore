@@ -23,3 +23,5 @@ adapters/
 .ipynb_checkpoints/
 .DS_Store
 
+# locally-generated benchmark outputs
+benchmarks/results/local/

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,7 +13,9 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.neural_network import MLPClassifier
 
-OUT = Path('/mnt/data')
+_HERE = Path(__file__).resolve().parent
+OUT = Path(os.environ.get("DENDRITRON_OUTPUT_DIR") or _HERE.parent / "results" / "local")
+OUT.mkdir(parents=True, exist_ok=True)
 SEED = 42
 
 
