@@ -4,6 +4,7 @@ import importlib.util
 import json
 import gc
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -12,8 +13,10 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
-OUT = Path('/mnt/data')
-V07_PATH = OUT / 'dendritron_plasticity_benchmark_v0_7.py'
+_HERE = Path(__file__).resolve().parent
+OUT = Path(os.environ.get("DENDRITRON_OUTPUT_DIR") or _HERE.parent / "results" / "local")
+OUT.mkdir(parents=True, exist_ok=True)
+V07_PATH = _HERE / 'dendritron_plasticity_benchmark_v0_7.py'
 
 spec = importlib.util.spec_from_file_location('dendritron_v07', V07_PATH)
 v07 = importlib.util.module_from_spec(spec)
