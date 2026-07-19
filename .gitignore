@@ -25,3 +25,6 @@ adapters/
 
 # locally-generated benchmark outputs
 benchmarks/results/local/
+
+# built HIP shared library (compile via gpu/hip/Makefile)
+gpu/hip/libdendritron_rbf.so
