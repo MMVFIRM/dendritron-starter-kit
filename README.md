@@ -110,6 +110,56 @@ These are recorded results from the included historical experiment lineage. The 
 
 See [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for the version map, commands, dependencies, and interpretation boundaries.
 
+## Continual-learning validation (PermutedMNIST, reproduced 2026-07-19)
+
+Independent check of the zero-forgetting claim: 10 PermutedMNIST tasks, seeds
+42–44, matched parameter budget (≤269,322 params — the MLP baseline's count),
+**no task identity at test time** (routing via RBF activation only), 300 frozen
+branches (238,500 params). Baselines share one MLP (784-256-256-10), one data
+pipeline, and the same seeds.
+
+| Method | ACC (mean) | BWT/forgetting (mean) | Notes |
+| --- | ---: | ---: | --- |
+| **Dendritron tissue** | 0.673 ± .006 | **−0.056 ± .004** | structural (frozen branches), no exemplars |
+| Experience replay | **0.902 ± .003** | −0.032 ± .002 | 500 exemplars/task |
+| EWC | 0.766 ± .011 | −0.193 ± .013 | λ=500, diag Fisher |
+| Fine-tune | 0.646 ± .012 | −0.331 ± .013 | lower bound |
+| SI | 0.642 ± .028 | −0.336 ± .032 | c=0.1, ξ=1.0 |
+| Joint (ceiling) | 0.956 ± .001 | 0.000 | all data at once |
+
+**Honest reading.** The ownership claim holds — forgetting is near zero and
+structural rather than regularized. But on this benchmark the tissue is
+dominated by a 500-exemplar replay buffer (−0.032 BWT at +23 ACC). Its defensible
+niche today: **best forgetting resistance among exemplar-free methods** (EWC/SI
+forget 3.5–6× more), i.e. regimes where retaining old data is disallowed. The
+0.673-vs-0.956 ACC gap is a *capacity* gap (RBF prototypes on raw pixels), not
+forgetting. Also observed: the stock certificate threshold
+(`minimum_accuracy=0.80`) quarantined **every** task registration here — the
+tissue's certificate path needs calibration before it works at this scale, and
+ownership had to be enforced via a `FrozenLocalBranch` extension.
+
+### Recommended ablations (before claiming a continual-learning advantage)
+
+1. **Capacity vs forgetting.** Sweep branches/task {10, 30, 60, 100} (budget
+   permitting). If ACC rises toward joint while BWT stays ~−0.05, the story is
+   "capacity-limited, not forgetting-limited" — a much stronger position.
+2. **Oracle-routing upper bound.** Cheat: give the tissue the task id at test.
+   The ACC delta vs routed mode prices the certificate-free routing exactly.
+3. **Sigma sweep.** σ ∈ {0.5×, 1×, 2×} median intra-cluster distance, plus a
+   per-branch learned σ — tests routing sharpness vs branch overlap.
+4. **Exemplar-free regime emphasis.** Re-run where replay is *disallowed*
+   (streaming/privacy). That is the only regime where the structural guarantee
+   currently differentiates; make it the headline, not a footnote.
+5. **Certificate calibration.** Fix the 0.80 threshold (per-task-type
+   calibration or relative thresholds) so valid owners are not quarantined;
+   report accept rate alongside ACC/BWT.
+6. **OOD/abstention AUROC.** Train on CIFAR-10, score SVHN/LSUN:
+   Σ-branch-activation as an OOD score vs MSP / energy / Mahalanobis. The RBF
+   decay is the architecture's most distinctive mechanism — measure it directly.
+7. **Hybrid replay.** Tissue + tiny buffer. If ACC recovers toward ~0.90 with
+   BWT intact, ownership + rehearsal beats either alone and the comparison
+   flips from "dominated" to "Pareto".
+
 ## Repository map
 
 ```text
