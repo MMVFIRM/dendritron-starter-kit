@@ -75,6 +75,123 @@ __global__ void rbf_forward_kernel(const float* __restrict__ X,
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared-memory-tiled variant. The simple kernel above re-reads every branch
+// center (B*D floats) and output (B*O floats) from global memory once PER
+// sample -- i.e. N*B*D redundant global loads, which makes it memory-bound at
+// large N. Here each block cooperatively stages a tile of TB branches
+// (centers/outputs/sigmas/active) into LDS once, then every sample-thread in
+// the block reuses that tile from shared memory. Global center/output traffic
+// drops from O(N*B*D) to O(ceil(N/blockDim)*B*D) -- a ~blockDim-fold reduction
+// -- turning the large-N regime compute-bound.
+//
+// Dynamic shared layout (all float, active stored as 1.0f/0.0f):
+//   [ centers: TB*D ][ outputs: TB*O ][ sigmas: TB ][ active: TB ]
+// One thread == one sample (n = global tid). Threads with n >= N still
+// participate in the cooperative loads (so __syncthreads is uniform) but skip
+// the compute/store.
+__global__ void rbf_forward_tiled_kernel(const float* __restrict__ X,
+                                          const float* __restrict__ centers,
+                                          const float* __restrict__ sigmas,
+                                          const float* __restrict__ outputs,
+                                          const int* __restrict__ active_mask,
+                                          float* __restrict__ out, int N, int B,
+                                          int D, int O, int TB) {
+  extern __shared__ float smem[];
+  float* s_centers = smem;               // TB*D
+  float* s_outputs = s_centers + TB * D; // TB*O
+  float* s_sigmas = s_outputs + TB * O;  // TB
+  float* s_active = s_sigmas + TB;       // TB
+
+  const int n = blockIdx.x * blockDim.x + threadIdx.x;
+  const bool active_thread = (n < N);
+  const float* x_row = active_thread ? (X + (size_t)n * D) : X;
+
+  float acc[MAX_O];
+  for (int o = 0; o < O; ++o) acc[o] = 0.0f;
+
+  for (int t0 = 0; t0 < B; t0 += TB) {
+    int vb = B - t0;
+    if (vb > TB) vb = TB;
+
+    // Cooperative load of this branch tile into LDS.
+    for (int i = threadIdx.x; i < vb * D; i += blockDim.x)
+      s_centers[i] = centers[(size_t)t0 * D + i];
+    for (int i = threadIdx.x; i < vb * O; i += blockDim.x)
+      s_outputs[i] = outputs[(size_t)t0 * O + i];
+    for (int j = threadIdx.x; j < TB; j += blockDim.x) {
+      if (j < vb) {
+        s_sigmas[j] = sigmas[t0 + j];
+        s_active[j] = active_mask[t0 + j] ? 1.0f : 0.0f;
+      } else {
+        s_active[j] = 0.0f;
+      }
+    }
+    __syncthreads();
+
+    if (active_thread) {
+      for (int j = 0; j < vb; ++j) {
+        if (s_active[j] == 0.0f) continue;
+        const float* c_row = s_centers + (size_t)j * D;
+        float sumsq = 0.0f;
+        for (int d = 0; d < D; ++d) {
+          float diff = x_row[d] - c_row[d];
+          sumsq += diff * diff;
+        }
+        float dist = sqrtf(sumsq);
+        float sigma = s_sigmas[j];
+        if (sigma < 1e-8f) sigma = 1e-8f;
+        float ratio = dist / sigma;
+        float activation = expf(-0.5f * ratio * ratio);
+        const float* out_row = s_outputs + (size_t)j * O;
+        for (int o = 0; o < O; ++o) acc[o] += activation * out_row[o];
+      }
+    }
+    __syncthreads();  // done reading LDS before the next tile overwrites it
+  }
+
+  if (active_thread) {
+    float* out_row = out + (size_t)n * O;
+    for (int o = 0; o < O; ++o) out_row[o] = acc[o];
+  }
+}
+
+// Pick a branch-tile width TB so the LDS footprint stays within a per-block
+// budget (~32 KB, comfortably under gfx803's 64 KB LDS/CU while allowing >=2
+// resident blocks). Returns TB in [1, 64].
+static int choose_tb(int D, int O) {
+  const int budget_bytes = 32 * 1024;
+  int per_branch = (D + O + 2) * (int)sizeof(float);
+  int tb = budget_bytes / per_branch;
+  if (tb < 1) tb = 1;
+  if (tb > 64) tb = 64;
+  return tb;
+}
+
+// Shared launch path used by both public entry points. When the sample count
+// maps to <= 65535 blocks (one thread per sample), use the tiled kernel;
+// otherwise fall back to the grid-strided simple kernel (which handles
+// arbitrary N without a uniform-__syncthreads requirement).
+static void launch_rbf(const float* d_X, const float* d_centers,
+                       const float* d_sigmas, const float* d_outputs,
+                       const int* d_active, float* d_out, int N, int B, int D,
+                       int O) {
+  const int threads = 256;
+  long long need_blocks = ((long long)N + threads - 1) / threads;
+  if (need_blocks >= 1 && need_blocks <= 65535) {
+    int TB = choose_tb(D, O);
+    size_t shmem = (size_t)(TB * D + TB * O + 2 * TB) * sizeof(float);
+    hipLaunchKernelGGL(rbf_forward_tiled_kernel, dim3((int)need_blocks),
+                        dim3(threads), shmem, 0, d_X, d_centers, d_sigmas,
+                        d_outputs, d_active, d_out, N, B, D, O, TB);
+  } else {
+    int blocks = 65535;
+    hipLaunchKernelGGL(rbf_forward_kernel, dim3(blocks), dim3(threads), 0, 0,
+                        d_X, d_centers, d_sigmas, d_outputs, d_active, d_out, N,
+                        B, D, O);
+  }
+}
+
 extern "C" {
 
 // Host launcher. All array pointers are host pointers (float32 except
@@ -120,14 +237,7 @@ int rbf_forward(const float* X, const float* centers, const float* sigmas,
   HIP_CHECK(hipMemcpy(d_outputs, outputs, bytes_outputs, hipMemcpyHostToDevice));
   HIP_CHECK(hipMemcpy(d_active, active_mask, bytes_active, hipMemcpyHostToDevice));
 
-  int threads = 256;
-  int blocks = (N + threads - 1) / threads;
-  if (blocks < 1) blocks = 1;
-  if (blocks > 65535) blocks = 65535;
-
-  hipLaunchKernelGGL(rbf_forward_kernel, dim3(blocks), dim3(threads), 0, 0,
-                      d_X, d_centers, d_sigmas, d_outputs, d_active, d_out, N,
-                      B, D, O);
+  launch_rbf(d_X, d_centers, d_sigmas, d_outputs, d_active, d_out, N, B, D, O);
 
   hipError_t launch_err = hipGetLastError();
   if (launch_err != hipSuccess) {
@@ -193,19 +303,12 @@ int rbf_forward_timed(const float* X, const float* centers,
   HIP_CHECK(hipMemcpy(d_outputs, outputs, bytes_outputs, hipMemcpyHostToDevice));
   HIP_CHECK(hipMemcpy(d_active, active_mask, bytes_active, hipMemcpyHostToDevice));
 
-  int threads = 256;
-  int blocks = (N + threads - 1) / threads;
-  if (blocks < 1) blocks = 1;
-  if (blocks > 65535) blocks = 65535;
-
   hipEvent_t start, stop;
   HIP_CHECK(hipEventCreate(&start));
   HIP_CHECK(hipEventCreate(&stop));
 
   HIP_CHECK(hipEventRecord(start, 0));
-  hipLaunchKernelGGL(rbf_forward_kernel, dim3(blocks), dim3(threads), 0, 0,
-                      d_X, d_centers, d_sigmas, d_outputs, d_active, d_out, N,
-                      B, D, O);
+  launch_rbf(d_X, d_centers, d_sigmas, d_outputs, d_active, d_out, N, B, D, O);
   HIP_CHECK(hipEventRecord(stop, 0));
 
   hipError_t launch_err = hipGetLastError();

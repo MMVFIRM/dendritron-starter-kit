@@ -58,19 +58,24 @@ Numbers re-measured on a quiet box with GPU clocks pinned high
 
 | N | CPU f64 (ms) | GPU incl. transfer | speedup | GPU compute-only | speedup |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 1,000 | 4.19 | 2.57 | 1.63× | 2.30 | 1.82× |
-| 10,000 | 40.4 | 9.04 | 4.47× | 7.76 | **5.21×** |
-| 100,000 | 318.8 | 308.9 | 1.03× | 299.4 | 1.06× |
-| 1,000,000 | 3357.6 | 3096.9 | 1.08× | 3014.6 | 1.11× |
+| 1,000 | 4.37 | 2.61 | 1.67× | 2.35 | 1.86× |
+| 10,000 | 41.8 | 9.10 | 4.59× | 7.81 | 5.35× |
+| 100,000 | 312.4 | 87.1 | 3.59× | 77.9 | 4.01× |
+| 1,000,000 | 3116 | 646 | 4.82× | 561 | **5.55×** |
 
-**Where it wins:** the sweet spot is mid-range `N` (~10⁴), where the kernel is
-~4.5–5× faster end-to-end. At small `N` fixed launch + PCIe transfer overhead
-dominates (~1.6×). At very large `N` the CPU reference is a multithreaded BLAS
-GEMM, and this straightforward one-thread-per-sample kernel (which re-reads all
-branch centers from global memory per sample, with no shared-memory tiling) is
-memory-bound and only marginally ahead (~1.1×). Tiling the `centers`/`outputs`
-into shared memory is the obvious next step to make the large-`N` regime
-compute-bound and competitive with BLAS — see the PR description.
+**Where it wins:** the kernel is faster than the multithreaded BLAS reference
+at every tested size — peak ~4.6× (end-to-end) / ~5.5× (compute-only). Small
+`N` (~10³) is bounded by fixed launch + PCIe transfer (~1.7×); everything from
+`N≥10⁴` is a solid 3.6–4.8× including transfer.
+
+**How the large-`N` regime was fixed:** the first cut was a one-thread-per-
+sample kernel that re-read every branch center from global memory per sample
+(`O(N·B·D)` redundant loads), so at `N=10⁶` it was memory-bound and only
+~1.1× over the CPU BLAS GEMM. The current kernel stages branch tiles
+(`centers`/`outputs`/`sigmas`/`active`) into shared memory once per block and
+reuses them across the block's samples, cutting global center traffic by
+~`blockDim` (256×) and turning large `N` compute-bound: `N=10⁶` compute-only
+went 3015 ms → 561 ms (**5.4× kernel speedup**, 1.1× → 5.55× vs CPU).
 
 ## Scope
 
