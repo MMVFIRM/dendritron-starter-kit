@@ -6,6 +6,7 @@ mixed-geometry tissues, and Transformer memory packs are realizations of it.
 
 from .boolean import BooleanDendritron, ParityTissue, boolean_cube
 from .branches import LocalBranch
+from .gating import evaluate_gate, evaluate_logit_equivalence, scaled_logit_delta
 from .geometry import Chart, Geometry, expmap0, poincare_distance
 from .memory import PPCA, MemoryPack, MemoryRegistry
 from .mixed_geometry import MixedGeometryWeb
@@ -31,8 +32,11 @@ __all__ = [
     "PlasticDendritronWeb",
     "RecallMode",
     "boolean_cube",
+    "evaluate_gate",
+    "evaluate_logit_equivalence",
     "expmap0",
     "poincare_distance",
+    "scaled_logit_delta",
 ]
 
 __version__ = "0.1.0"

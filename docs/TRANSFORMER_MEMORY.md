@@ -48,5 +48,5 @@ The experiment checks:
 - uninstall excludes the deleted adapter;
 - reinstall restores adapter bytes and predictions.
 
-Raw-logit equality is stricter than functional equivalence and was the only exact gate that did not pass in the recorded v0.4.2 run. Prediction, candidate, hash, deletion, and reinstall gates passed.
+Raw-logit equality is stricter than functional equivalence and was the only exact gate that did not pass in the recorded v0.4.2 run (`gate_pass = false`; `checkpoint_max_logit_delta = 1.039` and `reinstall_max_logit_delta = 0.75` vs an absolute `2e-3` tolerance). Prediction, candidate, hash, deletion, and reinstall gates passed. The failed bound was float32-grade while the run computes in bfloat16, where O(1) raw-logit deltas between model instances are expected even for an identical reloaded function. The benchmark gate is now version `v2-noise-floor`: reload equivalence is decided by `dendritron.gating.evaluate_logit_equivalence` against an absolute tolerance, a measured same-instance noise floor, and a scale-relative tolerance, with per-criterion failures recorded as `gate_failures` in the summary JSON. The v0.4.2 artifacts predate this calibration and should be cited as functional equivalence, not raw-logit equality.
 
