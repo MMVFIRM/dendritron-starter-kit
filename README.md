@@ -106,7 +106,7 @@ These are recorded results from the included historical experiment lineage. The 
 | Mixed geometry v0.9 | Compartmentalized Euclidean 96.77%; symmetric mixed bank 98.15% mean final accuracy |
 | Tree-distance limit | Depth-10 normalized RMSE: Euclidean 0.3601; hyperbolic 0.0994 |
 | SmolLM2-360M v0.4.2 | Frozen base 50%; oracle adapter 97%; autonomous Dendritron 97% |
-| SmolLM2 integrity | 100% old-memory retention, backbone hash retention, checkpoint equivalence, and reinstall hash equivalence; zero raw examples retained |
+| SmolLM2 integrity | 100% old-memory retention, backbone hash retention, checkpoint prediction/candidate equivalence, and reinstall hash equivalence; zero raw examples retained. Recorded run: `gate_pass = false` on raw-logit tolerance only (bf16 compute vs float32-grade 2e-3 bound); see [RESULTS.md](benchmarks/results/reference/RESULTS.md) |
 
 See [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for the version map, commands, dependencies, and interpretation boundaries.
 

@@ -17,3 +17,23 @@ These files are compact outputs from the executed benchmark lineage and are not 
 
 The executed run recorded 97% oracle and autonomous accuracy, 100% old-memory prediction retention, an unchanged canonical backbone SHA-256, checkpoint prediction/candidate equivalence, correct deletion exclusion, and adapter hash/prediction equivalence after reinstall.
 
+## Recorded v0.4.2 gate status: FAIL on raw-logit tolerance
+
+The recorded summary JSON (`dendritron_smollm2_summary(2).json`) shows
+`gate_pass = false`. Two criteria failed: `checkpoint_max_logit_delta = 1.039`
+and `reinstall_max_logit_delta = 0.75` against an absolute tolerance of
+`2e-3`. Every functional criterion passed: prediction equivalence 1.0,
+candidate equivalence 1.0, backbone and adapter hash retention 1.0, deletion
+exclusion 1.0.
+
+The failure was a miscalibrated tolerance, not a broken reload: the run
+computes in bfloat16, where one ULP at logit magnitude ~16 is 0.125 and
+reduction-order differences between two model instances produce O(1) raw-logit
+deltas even when the reloaded function is identical. The failed criteria have
+been superseded by gate `v2-noise-floor`, which evaluates reload equivalence
+against an absolute tolerance, a measured run-to-run noise floor, and a scale-relative
+tolerance, and records per-criterion failures in the summary. Until
+the benchmark is rerun under the calibrated gate, treat the v0.4.2 integrity
+claims as "functional equivalence verified; raw-logit equality not
+established".
+
